@@ -1,0 +1,97 @@
+VteToc <- read.csv("C:/Users/ubadmus/OneDrive - University College Cork/Posdoc related/UVSintec Data/potential MS/TocopherolMS/data/Tocdata/VteToc.csv", stringsAsFactors=TRUE)
+View(VteToc)
+
+# drop sample columms (determine sample column)
+parametersVteToc <- colnames(VteToc[, -c(1:4)])
+
+#convert to long format
+data_longVteToc<- gather(VteToc, parametersVteToc, Amount, D.toc:Total.Tocopherol, factor_key=TRUE)
+
+# Decide the order of groups in the argument levels
+data_longVteToc$Treatment <- factor(data_longVteToc$Treatment, levels = c("-UV-B", "+UV-B"))
+data_longVteToc$Genotype <- factor(data_longVteToc$Genotype, levels = c("WT", "vte1-2"))
+
+
+#KS Toc barplot with stat
+bpToc <- ggbarplot(data_longVteToc, x = "Genotype", y = "Amount", fill = "Treatment",
+                   palette = "Treatment", add = "mean_se", ylab = "µg.g-1(FW)",
+                   position = position_dodge(0.8),
+                   facet.by = "parametersVteToc", scales = "free_y")
+bpToc
+stat.testVteToc <- data_longVteToc %>%
+  group_by(Genotype, parametersVteToc) %>%
+  wilcox_test (Amount ~ Treatment, paired = TRUE,
+          p.adjust.method = "bonferroni") %>%
+  
+  add_significance()
+stat.testVteToc
+
+stat.testVteToc <- stat.testVteToc %>%
+  add_xy_position(x = "Genotype", fun = "mean_se", dodge = 0.8)
+bpToc +
+  stat_pvalue_manual(
+    stat.testVteToc, label = "p.signif", tip.length = 0.01, hide.ns = TRUE) +
+  scale_y_continuous(expand = expansion(mult = c(0.01, 0.1)))
+
+
+#two way anova 
+aov_pA.Toc <- aov(A.toc  ~Treatment * Genotype , data = VteToc)
+summary(aov_pA.Toc )
+
+Df Sum Sq Mean Sq F value   Pr(>F)    
+Treatment           1   0.25   0.250   3.061    0.106    
+Genotype            1  12.96  12.960 158.694 2.81e-08 ***
+  Treatment:Genotype  1   0.25   0.250   3.061    0.106    
+Residuals          12   0.98   0.082                     
+---
+  Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+aov_pG.toc <- aov(G.toc ~Treatment *  Genotype , data = VteToc)
+summary(aov_pG.toc)
+
+Df Sum Sq Mean Sq F value   Pr(>F)    
+Treatment           1   0.01   0.010   0.667 0.430127    
+Genotype            1   0.36   0.360  24.000 0.000367 ***
+  Treatment:Genotype  1   0.01   0.010   0.667 0.430127    
+Residuals          12   0.18   0.015                     
+---
+  Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+aov_pD.toc <- aov(D.toc ~Treatment *  Genotype , data = VteToc)
+summary(aov_pD.toc)
+
+Df Sum Sq Mean Sq F value Pr(>F)  
+Treatment           1 0.1225 0.12250   3.000 0.1089  
+Genotype            1 0.3025 0.30250   7.408 0.0185 *
+  Treatment:Genotype  1 0.0025 0.00250   0.061 0.8088  
+Residuals          12 0.4900 0.04083                 
+---
+  Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+aov_pTotal.Toc <- aov(Total.Tocopherol ~Treatment *  Genotype , data = VteToc)
+summary(aov_pTotal.Toc)
+
+Df Sum Sq Mean Sq F value   Pr(>F)    
+Treatment           1  0.951   0.951   3.252   0.0965 .  
+Genotype            1 22.801  22.801  78.006 1.35e-06 ***
+  Treatment:Genotype  1  0.456   0.456   1.559   0.2357    
+Residuals          12  3.507   0.292                     
+---
+  Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+#individual stat
+compare_means(D.toc ~ Genotype, data = VteToc, group.by = "Treatment")
+compare_means(D.toc ~ Treatment, data = VteToc, group.by = "Genotype")
+
+
+compare_means(G.toc ~ Genotype, data = VteToc, group.by = "Treatment")
+compare_means(G.toc ~ Treatment, data = VteToc, group.by = "Genotype")
+
+
+compare_means(A.toc ~ Genotype, data = VteToc, group.by = "Treatment")
+compare_means(A.toc ~ Treatment, data = VteToc, group.by = "Genotype")
+
+
+compare_means(Total.Tocopherol ~ Genotype, data = VteToc, group.by = "Treatment")
+compare_means(Total.Tocopherol ~ Treatment, data = VteToc, group.by = "Genotype")
+
