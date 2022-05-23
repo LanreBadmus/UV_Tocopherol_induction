@@ -1,0 +1,110 @@
+PMSToc <- read.csv("C:/Users/ubadmus/OneDrive - University College Cork/Posdoc related/UVSintec Data/potential MS/TocopherolMS/data/Tocdata/PMSToc.csv", stringsAsFactors=TRUE)
+View(PMSToc)
+
+# drop sample columms (determine sample column)
+parametersPMSToc <- colnames(PMSToc[, -c(1:6)])
+
+#convert to long format
+data_longPMSToc<- gather(PMSToc, parametersPMSToc, Amount, D.toc:Total.Tocopherol, factor_key=TRUE)
+
+# Decide the order of groups in the argument levels
+data_longPMSToc$Treatment <- factor(data_longPMSToc$Treatment, levels = c("-UV-B", "+UV-B"))
+data_longPMSToc$Genotype <- factor(data_longPMSToc$Genotype, levels = c("WT", "cry1cry2", "phot1phot2", "uvr8"))
+
+
+#KS Toc barplot with stat
+bpToc <- ggbarplot(data_longPMSToc, x = "Genotype", y = "Amount", fill = "Treatment",
+                   palette = "Treatment", add = "mean_se", ylab = "µg.g-1(FW)",
+                   position = position_dodge(0.8),
+                   facet.by = "parametersPMSToc", scales = "free_y")
+bpToc
+stat.testPMSToc <- data_longPMSToc %>%
+  group_by(Genotype, parametersPMSToc) %>%
+  t_test (Amount ~ Treatment, paired = TRUE,
+          p.adjust.method = "bonferroni") %>%
+  
+  add_significance()
+stat.testPMSToc
+
+stat.testPMSToc <- stat.testPMSToc %>%
+  add_xy_position(x = "Genotype", fun = "mean_se", dodge = 0.8)
+bpToc +
+  stat_pvalue_manual(
+    stat.testPMSToc, label = "p.signif", tip.length = 0.01, hide.ns = TRUE) +
+  scale_y_continuous(expand = expansion(mult = c(0.01, 0.1)))
+
+
+#two way anova 
+aov_pA.Toc <- aov(A.toc  ~Treatment * Genotype , data = PMSToc)
+summary(aov_pA.Toc )
+
+Df Sum Sq Mean Sq F value  Pr(>F)   
+Treatment           1  19.06  19.065   8.399 0.00673 **
+  Genotype            3   8.15   2.715   1.196 0.32684   
+Treatment:Genotype  3   0.26   0.088   0.039 0.98968   
+Residuals          32  72.64   2.270                   
+---
+  Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+aov_pG.toc <- aov(G.toc ~Treatment *  Genotype , data = PMSToc)
+summary(aov_pG.toc)
+
+Df Sum Sq Mean Sq F value   Pr(>F)    
+Treatment           1 2.1653  2.1653  27.128 1.08e-05 ***
+  Genotype            3 0.1228  0.0409   0.513    0.676    
+Treatment:Genotype  3 0.1012  0.0337   0.422    0.738    
+Residuals          32 2.5542  0.0798                     
+---
+  Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+aov_pD.toc <- aov(D.toc ~Treatment *  Genotype , data = PMSToc)
+summary(aov_pD.toc)
+
+Df Sum Sq Mean Sq F value Pr(>F)
+Treatment           1  0.128 0.12774   0.672  0.418
+Genotype            3  0.893 0.29760   1.566  0.217
+Treatment:Genotype  3  0.121 0.04027   0.212  0.887
+Residuals          32  6.082 0.19006     
+
+aov_pTotal.Toc <- aov(Total.Tocopherol ~Treatment *  Genotype , data = PMSToc)
+summary(aov_pTotal.Toc)
+
+Df Sum Sq Mean Sq F value  Pr(>F)   
+Treatment           1  37.75   37.75  12.347 0.00134 **
+  Genotype            3   9.60    3.20   1.046 0.38544   
+Treatment:Genotype  3   0.54    0.18   0.058 0.98113   
+Residuals          32  97.83    3.06                   
+---
+  Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+#individual stat
+compare_means(D.toc ~ Genotype, data = PMSToc, group.by = "Treatment")
+compare_means(D.toc ~ Treatment, data = PMSToc, group.by = "Genotype")
+
+# A tibble: 12 x 9
+Treatment .y.   group1     group2         p p.adj p.format p.signif method  
+<fct>     <chr> <chr>      <chr>      <dbl> <dbl> <chr>    <chr>    <chr>   
+  1 +UV-B     D.toc cry1cry2   phot1phot2 0.917     1 0.92     ns       Wilcoxon
+2 +UV-B     D.toc cry1cry2   uvr8       1         1 1.00     ns       Wilcoxon
+3 +UV-B     D.toc cry1cry2   WT         0.421     1 0.42     ns       Wilcoxon
+4 +UV-B     D.toc phot1phot2 uvr8       0.548     1 0.55     ns       Wilcoxon
+5 +UV-B     D.toc phot1phot2 WT         0.222     1 0.22     ns       Wilcoxon
+6 +UV-B     D.toc uvr8       WT         0.421     1 0.42     ns       Wilcoxon
+7 -UV-B     D.toc cry1cry2   phot1phot2 0.753     1 0.75     ns       Wilcoxon
+8 -UV-B     D.toc cry1cry2   uvr8       0.249     1 0.25     ns       Wilcoxon
+9 -UV-B     D.toc cry1cry2   WT         1         1 1.00     ns       Wilcoxon
+10 -UV-B     D.toc phot1phot2 uvr8       0.346     1 0.35     ns       Wilcoxon
+11 -UV-B     D.toc phot1phot2 WT         1         1 1.00     ns       Wilcoxon
+12 -UV-B     D.toc uvr8       WT         0.222     1 0.22     ns       Wilcoxon
+
+compare_means(G.toc ~ Genotype, data = PMSToc, group.by = "Treatment")
+compare_means(G.toc ~ Treatment, data = PMSToc, group.by = "Genotype")
+
+
+compare_means(A.toc ~ Genotype, data = PMSToc, group.by = "Treatment")
+compare_means(A.toc ~ Treatment, data = PMSToc, group.by = "Genotype")
+
+
+compare_means(Total.Tocopherol ~ Genotype, data = PMSToc, group.by = "Treatment")
+compare_means(Total.Tocopherol ~ Treatment, data = PMSToc, group.by = "Genotype")
+
