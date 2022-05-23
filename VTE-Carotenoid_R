@@ -1,0 +1,73 @@
+VteCar <- read.csv("C:/Users/ubadmus/OneDrive - University College Cork/Posdoc related/UVSintec Data/potential MS/TocopherolMS/data/Tocdata/VteCar.csv", stringsAsFactors=TRUE)
+View(VteCar)
+
+# drop sample columms (determine sample column)
+parametersVteCar <- colnames(VteCar[, -c(1:4)])
+
+#convert to long format
+data_longVteCar<- gather(VteCar, parametersVteCar, Amount, Ant:Chla.b, factor_key=TRUE)
+
+# Decide the order of groups in the argument levels
+data_longVteCar$Treatment <- factor(data_longVteCar$Treatment, levels = c("-UV-B", "+UV-B"))
+data_longVteCar$Genotype <- factor(data_longVteCar$Genotype, levels = c("WT", "vte1-2"))
+
+
+#KS Toc barplot with stat
+bpCar <- ggbarplot(data_longVteCar, x = "Genotype", y = "Amount", fill = "Treatment",
+                   palette = "Treatment", add = "mean_se", ylab = "µg.g-1(FW)",
+                   position = position_dodge(0.8),
+                   facet.by = "parametersVteCar", scales = "free_y")
+bpCar
+stat.testVteCar <- data_longVteCar %>%
+  group_by(Genotype, parametersVteCar) %>%
+ t_test (Amount ~ Treatment, paired = TRUE,
+               p.adjust.method = "bonferroni") %>%
+  
+  add_significance()
+stat.testVteCar
+
+stat.testVteCar <- stat.testVteCar %>%
+  add_xy_position(x = "Genotype", fun = "mean_se", dodge = 0.8)
+bpCar +
+  stat_pvalue_manual(
+    stat.testVteCar, label = "p.signif", tip.length = 0.01, hide.ns = TRUE) +
+  scale_y_continuous(expand = expansion(mult = c(0.01, 0.1)))
+
+
+#two way anova 
+aov_pA.Toc <- aov(A.toc  ~Treatment * Genotype , data = VteCar)
+summary(aov_pA.Toc )
+
+
+
+aov_pG.toc <- aov(G.toc ~Treatment *  Genotype , data = VteCar)
+summary(aov_pG.toc)
+
+
+
+aov_pD.toc <- aov(D.toc ~Treatment *  Genotype , data = VteCar)
+summary(aov_pD.toc)
+
+
+
+aov_pTotal.Toc <- aov(Total.Tocopherol ~Treatment *  Genotype , data = VteCar)
+summary(aov_pTotal.Toc)
+
+
+
+#individual stat
+compare_means(D.toc ~ Genotype, data = VteCar, group.by = "Treatment")
+compare_means(D.toc ~ Treatment, data = VteCar, group.by = "Genotype")
+
+
+compare_means(G.toc ~ Genotype, data = VteCar, group.by = "Treatment")
+compare_means(G.toc ~ Treatment, data = VteCar, group.by = "Genotype")
+
+
+compare_means(A.toc ~ Genotype, data = VteCar, group.by = "Treatment")
+compare_means(A.toc ~ Treatment, data = VteCar, group.by = "Genotype")
+
+
+compare_means(Total.Tocopherol ~ Genotype, data = VteCar, group.by = "Treatment")
+compare_means(Total.Tocopherol ~ Treatment, data = VteCar, group.by = "Genotype")
+
