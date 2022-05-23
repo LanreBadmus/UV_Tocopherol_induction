@@ -1,0 +1,110 @@
+VteChlFlu <- read.csv("C:/Users/ubadmus/OneDrive - University College Cork/Posdoc related/UVSintec Data/potential MS/TocopherolMS/data/Tocdata/VteChlFlu.csv", stringsAsFactors=TRUE)
+View(VteChlFlu)
+
+# drop sample columms (determine sample column)
+parametersVteChlFlu <- colnames(VteChlFlu[, -c(1:4)])
+
+#convert to long format
+data_longVteChlFlu<- gather(VteChlFlu, parametersVteChlFlu, Amount, Fv.Fm: Y.NO., factor_key=TRUE)
+
+# Decide the order of groups in the argument levels
+data_longVteChlFlu$Treatment <- factor(data_longVteChlFlu$Treatment, levels = c("-UV-B", "+UV-B"))
+data_longVteChlFlu$Genotype <- factor(data_longVteChlFlu$Genotype, levels = c("WT", "vte1-2"))
+
+
+#KS Toc barplot with stat
+bpToc <- ggbarplot(data_longVteChlFlu, x = "Genotype", y = "Amount", fill = "Treatment",
+                   palette = "Treatment", add = "mean_se", ylab = "µg.g-1(FW)",
+                   position = position_dodge(0.8),
+                   facet.by = "parametersVteChlFlu", scales = "free_y")
+bpToc
+stat.testVteChlFlu <- data_longVteChlFlu %>%
+  group_by(Genotype, parametersVteChlFlu) %>%
+  wilcox_test (Amount ~ Treatment,
+               p.adjust.method = "bonferroni") %>%
+  
+  add_significance()
+stat.testVteChlFlu
+
+stat.testVteChlFlu <- stat.testVteChlFlu %>%
+  add_xy_position(x = "Genotype", fun = "mean_se", dodge = 0.8)
+bpToc +
+  stat_pvalue_manual(
+    stat.testVteChlFlu, label = "p.signif", tip.length = 0.01, hide.ns = TRUE) +
+  scale_y_continuous(expand = expansion(mult = c(0.01, 0.1)))
+
+A tibble: 8 x 10
+Genotype parametersVteChlFlu .y.    group1 group2    n1    n2 statistic       p p.signif
+* <fct>    <fct>               <chr>  <chr>  <chr>  <int> <int>     <dbl>   <dbl> <chr>   
+  1 WT       Fv.Fm               Amount -UV-B  +UV-B      7     7        38 0.0973  ns      
+2 WT       Y.II.               Amount -UV-B  +UV-B      7     7        46 0.00408 **      
+  3 WT       Y.NPQ.              Amount -UV-B  +UV-B      7     7        26 0.902   ns      
+4 WT       Y.NO.               Amount -UV-B  +UV-B      7     7         8 0.0379  *       
+  5 vte1-2   Fv.Fm               Amount -UV-B  +UV-B      7     7        43 0.0175  *       
+  6 vte1-2   Y.II.               Amount -UV-B  +UV-B      7     7        39 0.0728  ns      
+7 vte1-2   Y.NPQ.              Amount -UV-B  +UV-B      7     7        18 0.456   ns      
+8 vte1-2   Y.NO.               Amount -UV-B  +UV-B      7     7        11 0.0973  ns  
+
+#two way anova 
+aov_pFv.Fm <- aov(Fv.Fm  ~Treatment * Genotype , data = VteChlFlu)
+summary(aov_pFv.Fm )
+
+Df  Sum Sq Mean Sq F value Pr(>F)  
+Treatment           1 0.04975 0.04975   5.990 0.0221 *
+  Genotype            1 0.03629 0.03629   4.369 0.0474 *
+  Treatment:Genotype  1 0.02517 0.02517   3.030 0.0945 .
+Residuals          24 0.19934 0.00831                 
+---
+  Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+aov_pY.II. <- aov(Y.II.~Treatment *  Genotype , data = VteChlFlu)
+summary(aov_pY.II.)
+
+Df  Sum Sq Mean Sq F value  Pr(>F)   
+Treatment           1 0.08154 0.08154  13.092 0.00137 **
+  Genotype            1 0.01591 0.01591   2.555 0.12303   
+Treatment:Genotype  1 0.00175 0.00175   0.281 0.60070   
+Residuals          24 0.14948 0.00623                   
+---
+  Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+aov_pY.NPQ.<- aov(Y.NPQ. ~Treatment *  Genotype , data = VteChlFlu)
+summary(aov_pY.NPQ.)
+
+Df  Sum Sq  Mean Sq F value Pr(>F)
+Treatment           1 0.00553 0.005534   1.058  0.314
+Genotype            1 0.00009 0.000092   0.018  0.895
+Treatment:Genotype  1 0.00430 0.004297   0.822  0.374
+Residuals          24 0.12550 0.005229    
+
+aov_pY.NO. <- aov(Y.NO. ~Treatment *  Genotype , data = VteChlFlu)
+summary(aov_pY.NO.)
+
+Df  Sum Sq Mean Sq F value  Pr(>F)   
+Treatment           1 0.04954 0.04954   9.799 0.00454 **
+  Genotype            1 0.02034 0.02034   4.024 0.05625 . 
+Treatment:Genotype  1 0.00026 0.00026   0.052 0.82215   
+Residuals          24 0.12133 0.00506                   
+---
+  Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+#individual stat
+compare_means(Fv.Fm ~ Genotype, data = VteChlFlu, group.by = "Treatment")
+compare_means(Fv.Fm ~ Treatment, data = VteChlFlu, group.by = "Genotype")
+
+Genotype .y.   group1 group2      p p.adj p.format p.signif method  
+<fct>    <chr> <chr>  <chr>   <dbl> <dbl> <chr>    <chr>    <chr>   
+  1 WT       Fv.Fm -UV-B  +UV-B  0.0973 0.097 0.097    ns       Wilcoxon
+2 vte1-2   Fv.Fm -UV-B  +UV-B  0.0175 0.035 0.017    *        Wilcoxon
+
+compare_means(Y.II. ~ Genotype, data = VteChlFlu, group.by = "Treatment")
+compare_means(Y.II. ~ Treatment, data = VteChlFlu, group.by = "Genotype")
+
+
+compare_means(Y.NPQ. ~ Genotype, data = VteChlFlu, group.by = "Treatment")
+compare_means(Y.NPQ. ~ Treatment, data = VteChlFlu, group.by = "Genotype")
+
+
+compare_means(Y.NO. ~ Genotype, data = VteChlFlu, group.by = "Treatment")
+compare_means(Y.NO. ~ Treatment, data = VteChlFlu, group.by = "Genotype")
+
